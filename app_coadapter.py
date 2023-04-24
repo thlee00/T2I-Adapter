@@ -220,4 +220,4 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
     inps = list(chain(btns, ims1, ims2, cond_weights))
     inps.extend([prompt, neg_prompt, scale, n_samples, seed, steps, resize_short_edge, cond_tau])
     submit.click(fn=run, inputs=inps, outputs=[output, cond])
-demo.launch()
+demo.launch(share=True)
