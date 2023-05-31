@@ -126,7 +126,7 @@ def run(*args):
                     tmp, C, H, W = cur_feats[i].size()
                     print(cur_feats[i].size)
 
-                    mask = torch.zeros(C, H, W)
+                    mask = torch.zeros(C, H, W, dtype=torch.int32).to(opt.device)
 
                     scaled_top_left = (top_left[0] / 512 * W, top_left[1] / 512 * H)
                     scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
