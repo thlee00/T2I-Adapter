@@ -123,14 +123,15 @@ def run(*args):
             bottom_right = adapters[cond_name]['bottom_right']
             if isinstance(cur_feats, list):
                 for i in range(len(cur_feats)):
-                    C, H, W = cur_feats[i].size()
+                    *C, H, W = cur_feats[i].size()
+                    print(cur_feats[i].size)
 
-                    mask = torch.zeros(H, W)
+                    mask = torch.zeros(C, H, W)
 
                     scaled_top_left = (top_left[0] / 512 * W, top_left[3] / 512 * H)
                     scaled_bottom_right = (bottom_right[1] / 512 * W, bottom_right[2] / 512 * H)
 
-                    mask[scaled_top_left[0]:scaled_bottom_right[0], scaled_top_left[1]:scaled_bottom_right[1]] = 1
+                    mask[:, scaled_top_left[0]:scaled_bottom_right[0], scaled_top_left[1]:scaled_bottom_right[1]] = 1
 
                     cur_feats[i] *= mask.unsqueeze(0)
                     cur_feats[i] *= adapters[cond_name]['cond_weight']
