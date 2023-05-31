@@ -179,7 +179,7 @@ This gradio demo is for a simple experience of CoAdapter. Following are some use
 - It is recommended to use a step size of 0.1 to adjust `Condition weight`. From experience, `Condition weight` will not be less than 0.5 or greater than 1.5
 
 '''
-with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo:
+with gr.Blocks(title="Locally-Contorller", css=".gr-box {border-color: #8136e2}") as demo:
     gr.Markdown(DESCRIPTION)
 
     btns = []
