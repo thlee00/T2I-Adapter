@@ -125,7 +125,7 @@ def run(*args):
                 for i in range(len(cur_feats)):
                     C, H, W = cur_feats.size()
 
-                    mask = torch.zeros(C, H, W)
+                    mask = torch.zeros(H, W)
 
                     scaled_top_left = (top_left[0] / 512 * W, top_left[3] / 512 * H)
                     scaled_bottom_right = (bottom_right[1] / 512 * W, bottom_right[2] / 512 * H)
