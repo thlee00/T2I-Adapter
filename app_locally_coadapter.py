@@ -156,8 +156,8 @@ def run(*args):
             print(scaled_top_left, scaled_bottom_right)
 
             mask[:, int(scaled_top_left[1]):int(scaled_bottom_right[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
-            print(mask[:, int(scaled_top_left[1]):int(scaled_bottom_right[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])])
-            cond *= mask.unsqueeze(0)
+            print(mask[0, int(scaled_top_left[1])+1, int(scaled_top_left[0])+1])
+            # cond *= mask.unsqueeze(0)
 
             output_conds.append(tensor2img(cond, rgb2bgr=False))
 
