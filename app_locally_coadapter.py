@@ -131,7 +131,7 @@ def run(*args):
                     scaled_top_left = (top_left[0] / 512 * W, top_left[1] / 512 * H)
                     scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
 
-                    mask[:, int(scaled_top_left[0]):int(scaled_bottom_right[0]), int(scaled_top_left[1]):int(scaled_bottom_right[1])] = 1
+                    mask[:, int(scaled_top_left[1]):int(scaled_bottom_right[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
 
                     cur_feats[i] *= mask.unsqueeze(0)
                     cur_feats[i] *= adapters[cond_name]['cond_weight']
@@ -156,7 +156,8 @@ def run(*args):
             scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
             print(scaled_top_left, scaled_bottom_right)
 
-            mask[:, int(scaled_top_left[0]):int(scaled_bottom_right[0]), int(scaled_top_left[1]):int(scaled_bottom_right[1])] = 1
+            mask[:, int(scaled_top_left[1]):int(scaled_bottom_right[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
+            print(mask)
             cond *= mask.unsqueeze(0)
 
             output_conds.append(tensor2img(cond, rgb2bgr=False))
