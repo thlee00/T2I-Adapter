@@ -123,7 +123,7 @@ def run(*args):
             bottom_right = adapters[cond_name]['bottom_right']
             if isinstance(cur_feats, list):
                 for i in range(len(cur_feats)):
-                    *C, H, W = cur_feats[i].size()
+                    tmp, C, H, W = cur_feats[i].size()
                     print(cur_feats[i].size)
 
                     mask = torch.zeros(C, H, W)
