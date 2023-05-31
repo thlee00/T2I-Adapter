@@ -76,7 +76,7 @@ def run(*args):
         conds = []
         activated_conds = []
         prev_size = None
-        for idx, (b, im1, im2, cond_weight) in enumerate(zip(*inps)):
+        for idx, (b, im1, im2, cond_weight, local_areas) in enumerate(zip(*inps)):
             cond_name = supported_cond[idx]
             if b == 'Nothing':
                 if cond_name in adapters:
@@ -88,6 +88,7 @@ def run(*args):
                 else:
                     adapters[cond_name] = get_adapters(opt, getattr(ExtraCondition, cond_name))
                 adapters[cond_name]['cond_weight'] = cond_weight
+                adapters[cond_name]['local_areas'] = local_areas
 
                 process_cond_module = getattr(api, f'get_cond_{cond_name}')
 
@@ -117,8 +118,19 @@ def run(*args):
         features = dict()
         for idx, cond_name in enumerate(activated_conds):
             cur_feats = adapters[cond_name]['model'](conds[idx])
+            local_area = adapters[cond_name]['local_areas']
             if isinstance(cur_feats, list):
                 for i in range(len(cur_feats)):
+                    C, H, W = cur_feats.size()
+
+                    mask = torch.zeros(C, H, W)
+
+                    top_left = (local_area[0] / 512 * W, local_area[3] / 512 * H)
+                    bottom_right = (local_area[1] / 512 * W, local_area[2] / 512 * H)
+
+                    mask[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]] = 1
+
+                    cur_feats[i] *= mask.unsqueeze(0)
                     cur_feats[i] *= adapters[cond_name]['cond_weight']
             else:
                 cur_feats *= adapters[cond_name]['cond_weight']
@@ -171,6 +183,7 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
     ims1 = []
     ims2 = []
     cond_weights = []
+    local_areas = []
 
     with gr.Row():
         for cond_name in supported_cond:
@@ -186,6 +199,18 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
                     im2 = gr.Image(source='upload', label=cond_name, interactive=True, visible=False, type="numpy")
                     cond_weight = gr.Slider(
                         label="Condition weight", minimum=0, maximum=5, step=0.05, value=1, interactive=True)
+                    
+                    with gr.Box():
+                        w_min = gr.Slider(
+                            label="W min", minimum=0, maximum=512, step=1, value=0, interactive=True)
+                        w_max = gr.Slider(
+                            label="W max", minimum=0, maximum=512, step=1, value=512, interactive=True)
+                        h_min = gr.Slider(
+                            label="H min", minimum=0, maximum=512, step=1, value=0, interactive=True)
+                        h_max = gr.Slider(
+                            label="H max", minimum=0, maximum=512, step=1, value=512, interactive=True)
+                        
+                    local_area = [w_min, w_max, h_min, h_max]
 
                     fn = partial(change_visible, im1, im2)
                     btn1.change(fn=fn, inputs=[btn1], outputs=[im1, im2], queue=False)
@@ -194,6 +219,7 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
                     ims1.append(im1)
                     ims2.append(im2)
                     cond_weights.append(cond_weight)
+                    local_areas.append(local_area)
 
     with gr.Column():
         prompt = gr.Textbox(label="Prompt")
@@ -217,7 +243,7 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
     output = gr.Gallery().style(grid=2, height='auto')
     cond = gr.Gallery().style(grid=2, height='auto')
 
-    inps = list(chain(btns, ims1, ims2, cond_weights))
+    inps = list(chain(btns, ims1, ims2, cond_weights, local_areas))
     inps.extend([prompt, neg_prompt, scale, n_samples, seed, steps, resize_short_edge, cond_tau])
     submit.click(fn=run, inputs=inps, outputs=[output, cond])
 demo.launch(share=True)
