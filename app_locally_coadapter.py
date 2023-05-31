@@ -146,14 +146,14 @@ def run(*args):
             top_left = adapters[activated_conds[idx]]['top_left']
             bottom_right = adapters[activated_conds[idx]]['bottom_right']
 
-            H, W = cond.size()
+            tmp, H, W = cond.size()
             mask = torch.zeros(H, W, dtype=torch.int32).to(opt.device)
             
             scaled_top_left = (top_left[0] / 512 * W, top_left[1] / 512 * H)
             scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
 
             mask[int(scaled_top_left[0]):int(scaled_bottom_right[0]), int(scaled_top_left[1]):int(scaled_bottom_right[1])] = 1
-            cond *= mask
+            cond *= mask.unsqueeze(0)
 
             output_conds.append(tensor2img(cond, rgb2bgr=False))
 
