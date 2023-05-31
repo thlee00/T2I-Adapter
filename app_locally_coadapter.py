@@ -128,8 +128,8 @@ def run(*args):
 
                     mask = torch.zeros(C, H, W)
 
-                    scaled_top_left = (top_left[0] / 512 * W, top_left[3] / 512 * H)
-                    scaled_bottom_right = (bottom_right[1] / 512 * W, bottom_right[2] / 512 * H)
+                    scaled_top_left = (top_left[0] / 512 * W, top_left[1] / 512 * H)
+                    scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
 
                     mask[:, scaled_top_left[0]:scaled_bottom_right[0], scaled_top_left[1]:scaled_bottom_right[1]] = 1
 
