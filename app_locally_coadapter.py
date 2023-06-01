@@ -134,7 +134,7 @@ def run(*args):
 
                     mask[:, int(scaled_bottom_right[1]):int(scaled_top_left[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
                     print(cur_feats[i][:,int(scaled_bottom_right[1])-1,:])
-                    print(cur_feats[i][:,int(scaled_bottom_right)[1],:])
+                    print(cur_feats[i][:,int(scaled_bottom_right[1]),:])
 
                     cur_feats[i] *= mask.unsqueeze(0)
                     print(cur_feats[i][:,int(scaled_bottom_right[1])-1,:])
