@@ -124,6 +124,7 @@ def run(*args):
             if isinstance(cur_feats, list):
                 for i in range(len(cur_feats)):
                     tmp, C, H, W = cur_feats[i].size()
+                    print(cond_name)
                     print(cur_feats[i].size())
 
                     mask = torch.zeros(C, H, W, dtype=torch.int32).to(opt.device)
@@ -132,8 +133,12 @@ def run(*args):
                     scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
 
                     mask[:, int(scaled_bottom_right[1]):int(scaled_top_left[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
+                    print(cur_feats[i][:,scaled_bottom_right[1]-1,:])
+                    print(cur_feats[i][:,scaled_bottom_right[1],:])
 
                     cur_feats[i] *= mask.unsqueeze(0)
+                    print(cur_feats[i][:,scaled_bottom_right[1]-1,:])
+                    print(cur_feats[i][:,scaled_bottom_right[1],:])
                     cur_feats[i] *= adapters[cond_name]['cond_weight']
             else:
                 cur_feats *= adapters[cond_name]['cond_weight']
@@ -156,7 +161,6 @@ def run(*args):
             print(scaled_top_left, scaled_bottom_right)
 
             mask[:, int(scaled_bottom_right[1]):int(scaled_top_left[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
-            print(mask[0, int(scaled_bottom_right[1])+1, int(scaled_top_left[0])+1])
             cond *= mask.unsqueeze(0)
 
             output_conds.append(tensor2img(cond, rgb2bgr=False))
