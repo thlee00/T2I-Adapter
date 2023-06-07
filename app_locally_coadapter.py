@@ -76,7 +76,7 @@ def run(*args):
         conds = []
         activated_conds = []
         prev_size = None
-        for idx, (b, im1, im2, cond_weight) in enumerate(zip(*inps)):
+        for idx, (b, im1, im2, cond_weight, w_min, w_max, h_min, h_max) in enumerate(zip(*inps)):
             cond_name = supported_cond[idx]
             if b == 'Nothing':
                 if cond_name in adapters:
@@ -88,6 +88,8 @@ def run(*args):
                 else:
                     adapters[cond_name] = get_adapters(opt, getattr(ExtraCondition, cond_name))
                 adapters[cond_name]['cond_weight'] = cond_weight
+                adapters[cond_name]['top_left'] = (w_min, h_max)
+                adapters[cond_name]['bottom_right'] = (w_max, h_min)
 
                 process_cond_module = getattr(api, f'get_cond_{cond_name}')
 
@@ -117,8 +119,26 @@ def run(*args):
         features = dict()
         for idx, cond_name in enumerate(activated_conds):
             cur_feats = adapters[cond_name]['model'](conds[idx])
+            top_left = adapters[cond_name]['top_left']
+            bottom_right = adapters[cond_name]['bottom_right']
             if isinstance(cur_feats, list):
                 for i in range(len(cur_feats)):
+                    tmp, C, H, W = cur_feats[i].size()
+                    print(cond_name)
+                    print(cur_feats[i].size())
+
+                    mask = torch.zeros(C, H, W, dtype=torch.int32).to(opt.device)
+
+                    scaled_top_left = (top_left[0] / 512 * W, top_left[1] / 512 * H)
+                    scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
+
+                    mask[:, int(scaled_bottom_right[1]):int(scaled_top_left[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
+                    print(cur_feats[i][:,int(scaled_bottom_right[1])-1,:])
+                    print(cur_feats[i][:,int(scaled_bottom_right[1]),:])
+
+                    cur_feats[i] *= mask.unsqueeze(0)
+                    print(cur_feats[i][:,int(scaled_bottom_right[1])-1,:])
+                    print(cur_feats[i][:,int(scaled_bottom_right[1]),:])
                     cur_feats[i] *= adapters[cond_name]['cond_weight']
             else:
                 cur_feats *= adapters[cond_name]['cond_weight']
@@ -127,7 +147,22 @@ def run(*args):
         adapter_features, append_to_context = coadapter_fuser(features)
 
         output_conds = []
-        for cond in conds:
+        for idx, cond in enumerate(conds):
+            print(activated_conds[idx])
+            top_left = adapters[activated_conds[idx]]['top_left']
+            bottom_right = adapters[activated_conds[idx]]['bottom_right']
+
+            tmp, C, H, W = cond.size()
+            print(cond.size())
+            mask = torch.zeros(C, H, W, dtype=torch.int32).to(opt.device)
+            
+            scaled_top_left = (top_left[0] / 512 * W, top_left[1] / 512 * H)
+            scaled_bottom_right = (bottom_right[0] / 512 * W, bottom_right[1] / 512 * H)
+            print(scaled_top_left, scaled_bottom_right)
+
+            mask[:, int(scaled_bottom_right[1]):int(scaled_top_left[1]), int(scaled_top_left[0]):int(scaled_bottom_right[0])] = 1
+            cond *= mask.unsqueeze(0)
+
             output_conds.append(tensor2img(cond, rgb2bgr=False))
 
         ims = []
@@ -164,13 +199,17 @@ This gradio demo is for a simple experience of CoAdapter. Following are some use
 - It is recommended to use a step size of 0.1 to adjust `Condition weight`. From experience, `Condition weight` will not be less than 0.5 or greater than 1.5
 
 '''
-with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo:
+with gr.Blocks(title="Locally-Contorller", css=".gr-box {border-color: #8136e2}") as demo:
     gr.Markdown(DESCRIPTION)
 
     btns = []
     ims1 = []
     ims2 = []
     cond_weights = []
+    w_mins = []
+    w_maxs = []
+    h_mins = []
+    h_maxs = []
 
     with gr.Row():
         for cond_name in supported_cond:
@@ -186,6 +225,16 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
                     im2 = gr.Image(source='upload', label=cond_name, interactive=True, visible=False, type="numpy")
                     cond_weight = gr.Slider(
                         label="Condition weight", minimum=0, maximum=5, step=0.05, value=1, interactive=True)
+                    
+                    with gr.Box():
+                        w_min = gr.Slider(
+                            label="W min", minimum=0, maximum=512, step=1, value=0, interactive=True)
+                        w_max = gr.Slider(
+                            label="W max", minimum=0, maximum=512, step=1, value=512, interactive=True)
+                        h_min = gr.Slider(
+                            label="H min", minimum=0, maximum=512, step=1, value=0, interactive=True)
+                        h_max = gr.Slider(
+                            label="H max", minimum=0, maximum=512, step=1, value=512, interactive=True)
 
                     fn = partial(change_visible, im1, im2)
                     btn1.change(fn=fn, inputs=[btn1], outputs=[im1, im2], queue=False)
@@ -194,6 +243,11 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
                     ims1.append(im1)
                     ims2.append(im2)
                     cond_weights.append(cond_weight)
+
+                    w_mins.append(w_min)
+                    w_maxs.append(w_max)
+                    h_mins.append(h_min)
+                    h_maxs.append(h_max)
 
     with gr.Column():
         prompt = gr.Textbox(label="Prompt")
@@ -217,7 +271,7 @@ with gr.Blocks(title="CoAdapter", css=".gr-box {border-color: #8136e2}") as demo
     output = gr.Gallery().style(grid=2, height='auto')
     cond = gr.Gallery().style(grid=2, height='auto')
 
-    inps = list(chain(btns, ims1, ims2, cond_weights))
+    inps = list(chain(btns, ims1, ims2, cond_weights, w_mins, w_maxs, h_mins, h_maxs))
     inps.extend([prompt, neg_prompt, scale, n_samples, seed, steps, resize_short_edge, cond_tau])
     submit.click(fn=run, inputs=inps, outputs=[output, cond])
 demo.launch(share=True)
